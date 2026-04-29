@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>50 / 30 / 20</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Courier New', monospace;
+    background: #f5f5f0;
+    color: #111;
+    padding: 2rem;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: -2px;
+    border-bottom: 4px solid #111;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 2rem;
+    color: #555;
+  }
+
+  /* Income input */
+  .income-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    border: 3px solid #111;
+    background: #fff;
+  }
+
+  .income-row label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .income-row input {
+    font-family: inherit;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border: none;
+    border-bottom: 3px solid #111;
+    background: transparent;
+    width: 100%;
+    outline: none;
+    padding: 0.25rem 0;
+  }
+
+  /* Budget bars */
+  .budget-section {
+    margin-bottom: 2rem;
+  }
+
+  .bucket {
+    border: 3px solid #111;
+    margin-bottom: -3px;
+    background: #fff;
+  }
+
+  .bucket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .bucket-header:hover {
+    background: #111;
+    color: #f5f5f0;
+  }
+
+  .bucket-name {
+    font-weight: 900;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+  }
+
+  .bucket-stats {
+    font-size: 0.85rem;
+    text-align: right;
+  }
+
+  .bucket-bar {
+    height: 8px;
+    background: #ddd;
+    position: relative;
+  }
+
+  .bucket-bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  .bucket[data-type="needs"] .bucket-bar-fill { background: #111; }
+  .bucket[data-type="wants"] .bucket-bar-fill { background: #666; }
+  .bucket[data-type="savings"] .bucket-bar-fill { background: #999; }
+
+  .bucket-bar-fill.over { background: #c0392b !important; }
+
+  /* Expense list inside bucket */
+  .bucket-expenses {
+    display: none;
+    border-top: 2px solid #111;
+    padding: 0.75rem 1rem;
+  }
+
+  .bucket-expenses.open { display: block; }
+
+  .expense-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.85rem;
+  }
+
+  .expense-item:last-child { border-bottom: none; }
+
+  .expense-desc { flex: 1; }
+
+  .expense-amount {
+    font-weight: 700;
+    margin-left: 1rem;
+    white-space: nowrap;
+  }
+
+  .expense-delete {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    color: #999;
+    line-height: 1;
+  }
+
+  .expense-delete:hover { color: #c0392b; }
+
+  .no-expenses {
+    color: #999;
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+
+  /* Add expense form */
+  .add-form {
+    display: flex;
+    gap: 0;
+    margin-bottom: 2rem;
+    border: 3px solid #111;
+  }
+
+  .add-form input, .add-form select, .add-form button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 0.75rem;
+    border: none;
+    outline: none;
+    background: #fff;
+    border-right: 2px solid #111;
+  }
+
+  .add-form input[name="desc"] { flex: 1; min-width: 0; }
+  .add-form input[name="amount"] { width: 100px; }
+
+  .add-form select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 1.5rem;
+  }
+
+  .add-form button {
+    font-weight: 900;
+    background: #111;
+    color: #f5f5f0;
+    cursor: pointer;
+    border-right: none;
+    padding: 0.75rem 1.25rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .add-form button:hover { background: #333; }
+
+  /* Summary */
+  .summary {
+    border: 3px solid #111;
+    padding: 1rem;
+    background: #fff;
+    margin-bottom: 2rem;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+  }
+
+  .summary-row.total {
+    border-top: 2px solid #111;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    font-weight: 900;
+    font-size: 1rem;
+  }
+
+  /* Month selector */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .month-nav button {
+    font-family: inherit;
+    font-size: 1.2rem;
+    font-weight: 900;
+    background: none;
+    border: 2px solid #111;
+    cursor: pointer;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .month-nav button:hover { background: #111; color: #f5f5f0; }
+
+  .month-label {
+    font-weight: 900;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .actions button {
+    font-family: inherit;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    background: #fff;
+    border: 2px solid #111;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .actions button:hover { background: #111; color: #f5f5f0; }
+
+  .actions button.danger:hover { background: #c0392b; border-color: #c0392b; }
+</style>
+</head>
+<body>
+
+<h1>50 / 30 / 20</h1>
+<p class="subtitle">Family expense tracker — needs, wants, savings</p>
+
+<div class="month-nav">
+  <button onclick="changeMonth(-1)">&larr;</button>
+  <span class="month-label" id="monthLabel"></span>
+  <button onclick="changeMonth(1)">&rarr;</button>
+</div>
+
+<div class="income-row">
+  <label>Monthly income &euro;</label>
+  <input type="number" id="income" placeholder="0" oninput="saveAndRender()">
+</div>
+
+<div class="add-form">
+  <input type="text" name="desc" id="expenseDesc" placeholder="Description">
+  <input type="number" name="amount" id="expenseAmount" placeholder="0.00" step="0.01">
+  <select id="expenseType">
+    <option value="needs">Needs</option>
+    <option value="wants">Wants</option>
+    <option value="savings">Savings</option>
+  </select>
+  <button onclick="addExpense()">Add</button>
+</div>
+
+<div class="budget-section" id="buckets"></div>
+
+<div class="summary" id="summary"></div>
+
+<div class="actions">
+  <button onclick="exportData()">Export JSON</button>
+  <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+  <button class="danger" onclick="clearMonth()">Clear month</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+</div>
+
+<script>
+const BUCKETS = [
+  { type: 'needs',   label: 'Needs',   pct: 50 },
+  { type: 'wants',   label: 'Wants',   pct: 30 },
+  { type: 'savings', label: 'Savings', pct: 20 },
+];
+
+let currentDate = new Date();
+currentDate.setDate(1);
+
+function monthKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function getData() {
+  return JSON.parse(localStorage.getItem('expense-tracker') || '{}');
+}
+
+function getMonth() {
+  const data = getData();
+  const key = monthKey(currentDate);
+  if (!data[key]) data[key] = { income: 0, expenses: [] };
+  return data[key];
+}
+
+function saveMonth(month) {
+  const data = getData();
+  data[monthKey(currentDate)] = month;
+  localStorage.setItem('expense-tracker', JSON.stringify(data));
+}
+
+function saveAndRender() {
+  const month = getMonth();
+  month.income = parseFloat(document.getElementById('income').value) || 0;
+  saveMonth(month);
+  render();
+}
+
+function addExpense() {
+  const desc = document.getElementById('expenseDesc').value.trim();
+  const amount = parseFloat(document.getElementById('expenseAmount').value);
+  const type = document.getElementById('expenseType').value;
+
+  if (!desc || !amount) return;
+
+  const month = getMonth();
+  month.expenses.push({ desc, amount, type, id: Date.now() });
+  saveMonth(month);
+
+  document.getElementById('expenseDesc').value = '';
+  document.getElementById('expenseAmount').value = '';
+  document.getElementById('expenseDesc').focus();
+  render();
+}
+
+function deleteExpense(id) {
+  const month = getMonth();
+  month.expenses = month.expenses.filter(e => e.id !== id);
+  saveMonth(month);
+  render();
+}
+
+function toggleBucket(type) {
+  document.querySelector(`.bucket[data-type="${type}"] .bucket-expenses`).classList.toggle('open');
+}
+
+function changeMonth(delta) {
+  currentDate.setMonth(currentDate.getMonth() + delta);
+  document.getElementById('income').value = '';
+  render();
+}
+
+function fmt(n) {
+  return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function render() {
+  const month = getMonth();
+  const income = month.income;
+
+  // Month label
+  document.getElementById('monthLabel').textContent =
+    currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  // Income
+  if (!document.getElementById('income').value && income)
+    document.getElementById('income').value = income;
+
+  // Buckets
+  let bucketsHtml = '';
+  let totalSpent = 0;
+
+  BUCKETS.forEach(b => {
+    const budget = income * b.pct / 100;
+    const expenses = month.expenses.filter(e => e.type === b.type);
+    const spent = expenses.reduce((s, e) => s + e.amount, 0);
+    totalSpent += spent;
+    const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+    const over = spent > budget && budget > 0;
+
+    let expList = '';
+    if (expenses.length === 0) {
+      expList = '<p class="no-expenses">No expenses yet</p>';
+    } else {
+      expenses.forEach(e => {
+        expList += `<div class="expense-item">
+          <span class="expense-desc">${e.desc}</span>
+          <span class="expense-amount">&euro; ${fmt(e.amount)}</span>
+          <button class="expense-delete" onclick="event.stopPropagation();deleteExpense(${e.id})">&times;</button>
+        </div>`;
+      });
+    }
+
+    bucketsHtml += `
+      <div class="bucket" data-type="${b.type}">
+        <div class="bucket-header" onclick="toggleBucket('${b.type}')">
+          <span class="bucket-name">${b.label} (${b.pct}%)</span>
+          <span class="bucket-stats">&euro; ${fmt(spent)} / &euro; ${fmt(budget)}${over ? ' — OVER' : ''}</span>
+        </div>
+        <div class="bucket-bar">
+          <div class="bucket-bar-fill ${over ? 'over' : ''}" style="width:${pct}%"></div>
+        </div>
+        <div class="bucket-expenses">${expList}</div>
+      </div>`;
+  });
+
+  document.getElementById('buckets').innerHTML = bucketsHtml;
+
+  // Summary
+  const remaining = income - totalSpent;
+  document.getElementById('summary').innerHTML = `
+    <div class="summary-row"><span>Income</span><span>&euro; ${fmt(income)}</span></div>
+    <div class="summary-row"><span>Total spent</span><span>&euro; ${fmt(totalSpent)}</span></div>
+    <div class="summary-row total"><span>Remaining</span><span>&euro; ${fmt(remaining)}</span></div>
+  `;
+}
+
+function clearMonth() {
+  if (!confirm('Clear all expenses for this month?')) return;
+  const data = getData();
+  delete data[monthKey(currentDate)];
+  localStorage.setItem('expense-tracker', JSON.stringify(data));
+  document.getElementById('income').value = '';
+  render();
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(getData(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'expenses.json';
+  a.click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      localStorage.setItem('expense-tracker', JSON.stringify(data));
+      render();
+    } catch(e) { alert('Invalid file'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+document.getElementById('expenseDesc').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addExpense();
+});
+document.getElementById('expenseAmount').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addExpense();
+});
+
+render();
+</script>
+
+</body>
+</html>
